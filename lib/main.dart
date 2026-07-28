@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:vibration/vibration.dart';
 import 'io_point.dart';
 import 'modbus_client.dart';
 import 'storage.dart';
@@ -15,7 +16,7 @@ void main() {
 // ---- Marka renkleri (eski Focus Boat logosundan) ----
 const Color kNavy = Color(0xFF0B1F3D);
 const Color kTurquoise = Color(0xFF17C3D9);
-const Color kBackground = Color(0xFFF4F6FA);
+const Color kBackground = Color(0xFF0A1830);
 
 // Renkli kart paleti (broşürdeki gibi her fonksiyon farklı renk)
 const List<Color> kCardPalette = [
@@ -53,6 +54,10 @@ class FocusBoatApp extends StatelessWidget {
           backgroundColor: Colors.white,
           foregroundColor: kNavy,
           elevation: 0,
+          surfaceTintColor: Colors.white,
+        ),
+        cardTheme: const CardThemeData(
+          color: Colors.white,
           surfaceTintColor: Colors.white,
         ),
         switchTheme: SwitchThemeData(
@@ -159,12 +164,24 @@ class _HomePageState extends State<HomePage>
     if (_alarmMuted) return;
     final alarms = _activeAlarms;
     if (alarms.isEmpty) return;
-    HapticFeedback.vibrate();
+    _vibrateAlarm();
     final text = alarms.length == 1
         ? 'Uyarı, ${alarms.first.label}'
         : '${alarms.length} uyarı aktif. ${alarms.map((p) => p.label).join(", ")}';
     await _tts.stop();
     await _tts.speak(text);
+  }
+
+  Future<void> _vibrateAlarm() async {
+    try {
+      final hasVibrator = await Vibration.hasVibrator();
+      if (hasVibrator) {
+        // Çift vurgulu, dikkat çekici alarm titreşimi
+        Vibration.vibrate(pattern: [0, 400, 150, 400, 150, 400]);
+      }
+    } catch (_) {
+      // Titreşim desteklenmiyorsa sessizce geç
+    }
   }
 
   // ---- Test amaçlı manuel alarm tetikleme (Ayarlar ekranından) ----
@@ -252,6 +269,30 @@ class _HomePageState extends State<HomePage>
         );
       }
     }
+  }
+
+  Future<void> _speakFuelRange() async {
+    final tankLiters = _settings.fuelTankLiters;
+    final consumption = _settings.fuelConsumptionPer100Km;
+    if (tankLiters <= 0 || consumption <= 0) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Önce Ayarlar\'dan depo kapasitesini ve ortalama tüketimi gir',
+            ),
+          ),
+        );
+      }
+      return;
+    }
+    final fuelPercent = _analogs.first.analogValue.clamp(0, 100);
+    final liters = fuelPercent / 100 * tankLiters;
+    final rangeKm = liters * 100 / consumption;
+    final text = 'Depoda yaklaşık ${liters.toStringAsFixed(0)} litre yakıt var. '
+        'Yaklaşık ${rangeKm.toStringAsFixed(0)} kilometre menzil kalmıştır.';
+    await _tts.stop();
+    await _tts.speak(text);
   }
 
   @override
@@ -422,14 +463,15 @@ class _HomePageState extends State<HomePage>
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
         gradient: const LinearGradient(
-          colors: [kNavy, Color(0xFF13415F)],
+          colors: [kNavy, Color(0xFF17547A)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
+        border: Border.all(color: kTurquoise.withOpacity(0.35), width: 1),
         boxShadow: [
           BoxShadow(
-            color: kNavy.withOpacity(0.25),
-            blurRadius: 12,
+            color: Colors.black.withOpacity(0.35),
+            blurRadius: 14,
             offset: const Offset(0, 6),
           ),
         ],
@@ -688,6 +730,12 @@ class _HomePageState extends State<HomePage>
                       child: Text(point.label,
                           style: const TextStyle(fontWeight: FontWeight.w600)),
                     ),
+                    if (i == 0)
+                      IconButton(
+                        tooltip: 'Menzili sesli hesapla',
+                        icon: const Icon(Icons.record_voice_over, size: 20, color: kNavy),
+                        onPressed: _speakFuelRange,
+                      ),
                     if (_editMode)
                       IconButton(
                         icon: const Icon(Icons.edit, size: 18),

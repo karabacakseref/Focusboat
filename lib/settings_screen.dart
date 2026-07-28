@@ -34,6 +34,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late final TextEditingController _hostCtrl;
   late final TextEditingController _portCtrl;
   late final TextEditingController _unitCtrl;
+  late final TextEditingController _fuelTankCtrl;
+  late final TextEditingController _fuelConsumptionCtrl;
   IOPoint? _selectedTestPoint;
 
   @override
@@ -42,6 +44,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _hostCtrl = TextEditingController(text: widget.settings.host);
     _portCtrl = TextEditingController(text: widget.settings.port.toString());
     _unitCtrl = TextEditingController(text: widget.settings.unitId.toString());
+    _fuelTankCtrl = TextEditingController(
+      text: widget.settings.fuelTankLiters > 0
+          ? widget.settings.fuelTankLiters.toStringAsFixed(0)
+          : '',
+    );
+    _fuelConsumptionCtrl = TextEditingController(
+      text: widget.settings.fuelConsumptionPer100Km > 0
+          ? widget.settings.fuelConsumptionPer100Km.toStringAsFixed(1)
+          : '',
+    );
     if (widget.testInputs.isNotEmpty) {
       _selectedTestPoint = widget.testInputs.first;
     }
@@ -51,6 +63,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     widget.settings.host = _hostCtrl.text.trim();
     widget.settings.port = int.tryParse(_portCtrl.text.trim()) ?? 502;
     widget.settings.unitId = int.tryParse(_unitCtrl.text.trim()) ?? 1;
+    widget.settings.fuelTankLiters =
+        double.tryParse(_fuelTankCtrl.text.trim()) ?? 0;
+    widget.settings.fuelConsumptionPer100Km =
+        double.tryParse(_fuelConsumptionCtrl.text.trim()) ?? 0;
     await Storage.saveSettings(widget.settings);
     if (mounted) Navigator.of(context).pop(true);
   }
@@ -160,6 +176,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildFuelCard() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: kTurquoise.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kTurquoise.withOpacity(0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.local_gas_station, color: kNavy),
+              SizedBox(width: 8),
+              Text('Yakıt / Menzil Hesaplama', style: TextStyle(fontWeight: FontWeight.w700)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Bu bilgilerle uygulama, yakıt seviyesine göre kaç km menzil '
+            'kaldığını sesli olarak söyleyebilir.',
+            style: TextStyle(color: Colors.grey, fontSize: 12.5),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _fuelTankCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Depo Kapasitesi (litre)',
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _fuelConsumptionCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Ortalama Tüketim (L/100km)',
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -171,6 +236,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _buildStatusCard(),
             const SizedBox(height: 16),
             _buildAlarmTestCard(),
+            const SizedBox(height: 16),
+            _buildFuelCard(),
             const SizedBox(height: 20),
             TextField(
               controller: _hostCtrl,
