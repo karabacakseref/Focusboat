@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'storage.dart';
 import 'io_point.dart';
+import 'main.dart' show kNavy, kTurquoise;
 
 class SettingsScreen extends StatefulWidget {
   final AppSettings settings;
