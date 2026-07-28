@@ -3,7 +3,19 @@ import 'storage.dart';
 
 class SettingsScreen extends StatefulWidget {
   final AppSettings settings;
-  const SettingsScreen({super.key, required this.settings});
+  final bool connected;
+  final bool connecting;
+  final String? connectionError;
+  final VoidCallback onReconnect;
+
+  const SettingsScreen({
+    super.key,
+    required this.settings,
+    required this.connected,
+    required this.connecting,
+    required this.connectionError,
+    required this.onReconnect,
+  });
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -30,6 +42,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) Navigator.of(context).pop(true);
   }
 
+  Widget _buildStatusCard() {
+    Color color;
+    String text;
+    if (widget.connecting) {
+      color = Colors.orange;
+      text = 'Bağlanıyor…';
+    } else if (widget.connected) {
+      color = Colors.green;
+      text = 'Bağlı: ${widget.settings.host}:${widget.settings.port}';
+    } else {
+      color = Colors.red;
+      text = widget.connectionError ?? 'Bağlı değil';
+    }
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.circle, size: 10, color: color),
+          const SizedBox(width: 10),
+          Expanded(child: Text(text, style: TextStyle(color: color.withOpacity(0.9)))),
+          if (!widget.connected && !widget.connecting)
+            TextButton(onPressed: widget.onReconnect, child: const Text('Yeniden bağlan')),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -39,6 +83,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            _buildStatusCard(),
+            const SizedBox(height: 20),
             TextField(
               controller: _hostCtrl,
               decoration: const InputDecoration(
