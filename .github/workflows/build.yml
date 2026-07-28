@@ -29,10 +29,10 @@ jobs:
         run: |
           for f in android/app/build.gradle.kts android/app/build.gradle; do
             if [ -f "$f" ]; then
-              sed -i -E "s/compileSdk[[:space:]]*=?[[:space:]]*flutter\.compileSdkVersion/compileSdk = 35/" "$f" || true
-              sed -i -E "s/compileSdkVersion[[:space:]]+flutter\.compileSdkVersion/compileSdkVersion 35/" "$f" || true
-              sed -i -E "s/targetSdk[[:space:]]*=?[[:space:]]*flutter\.targetSdkVersion/targetSdk = 35/" "$f" || true
-              sed -i -E "s/targetSdkVersion[[:space:]]+flutter\.targetSdkVersion/targetSdkVersion 35/" "$f" || true
+              sed -i -E "s/compileSdk[[:space:]]*=?[[:space:]]*flutter\.compileSdkVersion/compileSdk = 36/" "$f" || true
+              sed -i -E "s/compileSdkVersion[[:space:]]+flutter\.compileSdkVersion/compileSdkVersion 36/" "$f" || true
+              sed -i -E "s/targetSdk[[:space:]]*=?[[:space:]]*flutter\.targetSdkVersion/targetSdk = 36/" "$f" || true
+              sed -i -E "s/targetSdkVersion[[:space:]]+flutter\.targetSdkVersion/targetSdkVersion 36/" "$f" || true
             fi
           done
 
