@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'storage.dart';
+import 'io_point.dart';
 
 class SettingsScreen extends StatefulWidget {
   final AppSettings settings;
@@ -7,6 +8,10 @@ class SettingsScreen extends StatefulWidget {
   final bool connecting;
   final String? connectionError;
   final VoidCallback onReconnect;
+  final List<IOPoint> testInputs;
+  final void Function(IOPoint) onTriggerTestAlarm;
+  final VoidCallback onMuteAlarm;
+  final VoidCallback onClearTestAlarms;
 
   const SettingsScreen({
     super.key,
@@ -15,6 +20,10 @@ class SettingsScreen extends StatefulWidget {
     required this.connecting,
     required this.connectionError,
     required this.onReconnect,
+    required this.testInputs,
+    required this.onTriggerTestAlarm,
+    required this.onMuteAlarm,
+    required this.onClearTestAlarms,
   });
 
   @override
@@ -25,6 +34,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late final TextEditingController _hostCtrl;
   late final TextEditingController _portCtrl;
   late final TextEditingController _unitCtrl;
+  IOPoint? _selectedTestPoint;
 
   @override
   void initState() {
@@ -32,6 +42,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _hostCtrl = TextEditingController(text: widget.settings.host);
     _portCtrl = TextEditingController(text: widget.settings.port.toString());
     _unitCtrl = TextEditingController(text: widget.settings.unitId.toString());
+    if (widget.testInputs.isNotEmpty) {
+      _selectedTestPoint = widget.testInputs.first;
+    }
   }
 
   Future<void> _save() async {
@@ -74,16 +87,90 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildAlarmTestCard() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.orange.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.bug_report, color: Colors.orange),
+              SizedBox(width: 8),
+              Text('Alarm Testi', style: TextStyle(fontWeight: FontWeight.w700)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'PLC bağlı olmadan sesli/titreşimli alarmı test edebilirsin.',
+            style: TextStyle(color: Colors.grey, fontSize: 12.5),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<IOPoint>(
+            value: _selectedTestPoint,
+            decoration: const InputDecoration(
+              labelText: 'Test edilecek uyarı',
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+            items: widget.testInputs
+                .map((p) => DropdownMenuItem(value: p, child: Text(p.label)))
+                .toList(),
+            onChanged: (v) => setState(() => _selectedTestPoint = v),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  icon: const Icon(Icons.campaign),
+                  label: const Text('Alarm Ver'),
+                  style: FilledButton.styleFrom(backgroundColor: Colors.red.shade600),
+                  onPressed: _selectedTestPoint == null
+                      ? null
+                      : () => widget.onTriggerTestAlarm(_selectedTestPoint!),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.volume_off),
+                  label: const Text('Sustur'),
+                  onPressed: widget.onMuteAlarm,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: TextButton.icon(
+              icon: const Icon(Icons.refresh),
+              label: const Text('Testi Sıfırla'),
+              onPressed: widget.onClearTestAlarms,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('PLC Bağlantı Ayarları')),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: ListView(
           children: [
             _buildStatusCard(),
+            const SizedBox(height: 16),
+            _buildAlarmTestCard(),
             const SizedBox(height: 20),
             TextField(
               controller: _hostCtrl,
