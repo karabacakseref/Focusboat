@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'io_point.dart';
 import 'modbus_client.dart';
 import 'storage.dart';
@@ -93,6 +95,9 @@ class _HomePageState extends State<HomePage>
   bool _editMode = false;
   Timer? _pollTimer;
   bool _pollInFlight = false;
+  Timer? _alarmTimer;
+  bool _alarmMuted = false;
+  final FlutterTts _tts = FlutterTts();
 
   final List<IOPoint> _inputs = List.generate(
       kInputCount, (i) => IOPoint.defaultFor(PointCategory.input, i));
@@ -105,6 +110,10 @@ class _HomePageState extends State<HomePage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _tts.setLanguage('tr-TR');
+    _tts.setSpeechRate(0.45);
+    _tts.setVolume(1.0);
+    _alarmTimer = Timer.periodic(const Duration(seconds: 6), (_) => _checkAlarm());
     _bootstrap();
   }
 
@@ -144,6 +153,42 @@ class _HomePageState extends State<HomePage>
     _pollTimer = Timer.periodic(const Duration(milliseconds: 900), (_) => _poll());
   }
 
+  List<IOPoint> get _activeAlarms => _inputs.where((p) => p.boolValue).toList();
+
+  void _checkAlarm() async {
+    if (_alarmMuted) return;
+    final alarms = _activeAlarms;
+    if (alarms.isEmpty) return;
+    HapticFeedback.vibrate();
+    final text = alarms.length == 1
+        ? 'Uyarı, ${alarms.first.label}'
+        : '${alarms.length} uyarı aktif. ${alarms.map((p) => p.label).join(", ")}';
+    await _tts.stop();
+    await _tts.speak(text);
+  }
+
+  // ---- Test amaçlı manuel alarm tetikleme (Ayarlar ekranından) ----
+  void _triggerTestAlarm(IOPoint point) {
+    setState(() {
+      point.boolValue = true;
+      _alarmMuted = false;
+    });
+    _checkAlarm();
+  }
+
+  void _muteAlarmFromSettings() {
+    setState(() => _alarmMuted = true);
+    _tts.stop();
+  }
+
+  void _clearTestAlarms() {
+    setState(() {
+      for (final p in _inputs) {
+        p.boolValue = false;
+      }
+    });
+  }
+
   Future<void> _poll() async {
     final client = _client;
     if (client == null || !client.isConnected || _pollInFlight) return;
@@ -161,6 +206,7 @@ class _HomePageState extends State<HomePage>
       for (int i = 0; i < kAnalogCount; i++) {
         _analogs[i].analogValue = analogVals[i].toDouble();
       }
+      if (_activeAlarms.isEmpty) _alarmMuted = false;
       if (mounted) setState(() {});
     } catch (e) {
       // Bağlantı koptuysa yeniden bağlanmayı dener
@@ -211,6 +257,8 @@ class _HomePageState extends State<HomePage>
   @override
   void dispose() {
     _pollTimer?.cancel();
+    _alarmTimer?.cancel();
+    _tts.stop();
     _client?.disconnect();
     _tabController.dispose();
     super.dispose();
@@ -292,6 +340,10 @@ class _HomePageState extends State<HomePage>
                     connecting: _connecting,
                     connectionError: _connectionError,
                     onReconnect: _connect,
+                    testInputs: _inputs,
+                    onTriggerTestAlarm: _triggerTestAlarm,
+                    onMuteAlarm: _muteAlarmFromSettings,
+                    onClearTestAlarms: _clearTestAlarms,
                   ),
                 ),
               );
@@ -307,6 +359,7 @@ class _HomePageState extends State<HomePage>
       body: Column(
         children: [
           _buildBrandBanner(),
+          _buildAlarmBanner(),
           _buildSegmentBar(),
           Expanded(
             child: TabBarView(
@@ -317,6 +370,44 @@ class _HomePageState extends State<HomePage>
                 _buildAnalogsTab(),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAlarmBanner() {
+    final alarms = _activeAlarms;
+    if (alarms.isEmpty) return const SizedBox.shrink();
+    final text = alarms.length == 1
+        ? alarms.first.label
+        : '${alarms.length} aktif uyarı: ${alarms.map((p) => p.label).join(", ")}';
+    return Container(
+      margin: const EdgeInsets.fromLTRB(14, 6, 14, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.red.shade600,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.warning_amber_rounded, color: Colors.white),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          IconButton(
+            tooltip: _alarmMuted ? 'Sesi aç' : 'Sustur',
+            icon: Icon(_alarmMuted ? Icons.volume_off : Icons.volume_up, color: Colors.white),
+            onPressed: () {
+              setState(() => _alarmMuted = !_alarmMuted);
+              if (_alarmMuted) _tts.stop();
+            },
           ),
         ],
       ),
@@ -476,6 +567,10 @@ class _HomePageState extends State<HomePage>
                       connecting: _connecting,
                       connectionError: _connectionError,
                       onReconnect: _connect,
+                      testInputs: _inputs,
+                      onTriggerTestAlarm: _triggerTestAlarm,
+                      onMuteAlarm: _muteAlarmFromSettings,
+                      onClearTestAlarms: _clearTestAlarms,
                     ),
                   ),
                 );
