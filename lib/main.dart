@@ -220,7 +220,14 @@ class _HomePageState extends State<HomePage>
   Widget build(BuildContext context) {
     final connected = _client?.isConnected ?? false;
     return Scaffold(
+      drawer: _buildDrawer(),
       appBar: AppBar(
+        leading: Builder(
+          builder: (ctx) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => Scaffold.of(ctx).openDrawer(),
+          ),
+        ),
         title: Row(
           children: [
             ClipRRect(
@@ -240,17 +247,52 @@ class _HomePageState extends State<HomePage>
         ),
         actions: [
           IconButton(
+            tooltip: 'Bildirimler',
+            icon: const Icon(Icons.notifications_none),
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Şu an yeni bildirim yok')),
+              );
+            },
+          ),
+          IconButton(
             tooltip: _editMode ? 'Düzenlemeyi bitir' : 'Etiketleri düzenle',
             icon: Icon(_editMode ? Icons.check : Icons.edit),
             onPressed: () => setState(() => _editMode = !_editMode),
           ),
           IconButton(
             tooltip: 'Bağlantı ayarları',
-            icon: const Icon(Icons.settings_ethernet),
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Icon(Icons.settings_ethernet),
+                Positioned(
+                  right: -1,
+                  top: -1,
+                  child: Container(
+                    width: 9,
+                    height: 9,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _connecting
+                          ? Colors.orange
+                          : (connected ? Colors.green : Colors.red),
+                      border: Border.all(color: Colors.white, width: 1.5),
+                    ),
+                  ),
+                ),
+              ],
+            ),
             onPressed: () async {
               final changed = await Navigator.of(context).push<bool>(
                 MaterialPageRoute(
-                  builder: (_) => SettingsScreen(settings: _settings),
+                  builder: (_) => SettingsScreen(
+                    settings: _settings,
+                    connected: connected,
+                    connecting: _connecting,
+                    connectionError: _connectionError,
+                    onReconnect: _connect,
+                  ),
                 ),
               );
               if (changed == true) {
@@ -261,18 +303,11 @@ class _HomePageState extends State<HomePage>
             },
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Girişler'),
-            Tab(text: 'Çıkışlar'),
-            Tab(text: 'Analoglar'),
-          ],
-        ),
       ),
       body: Column(
         children: [
-          _buildStatusBar(connected),
+          _buildBrandBanner(),
+          _buildSegmentBar(),
           Expanded(
             child: TabBarView(
               controller: _tabController,
@@ -288,33 +323,183 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  Widget _buildStatusBar(bool connected) {
-    Color color;
-    String text;
-    if (_connecting) {
-      color = Colors.orange;
-      text = '${_settings.host}:${_settings.port} — bağlanıyor…';
-    } else if (connected) {
-      color = Colors.green;
-      text = '${_settings.host}:${_settings.port} — bağlı';
-    } else {
-      color = Colors.red;
-      text = _connectionError ?? 'Bağlı değil';
-    }
+  Widget _buildBrandBanner() {
     return Container(
       width: double.infinity,
-      color: color.withOpacity(0.12),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.fromLTRB(14, 12, 14, 4),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: const LinearGradient(
+          colors: [kNavy, Color(0xFF13415F)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: kNavy.withOpacity(0.25),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
       child: Row(
         children: [
-          Icon(Icons.circle, size: 10, color: color),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(text, style: TextStyle(color: color.withOpacity(0.9))),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.asset('assets/logo_icon.png', height: 44, width: 44),
           ),
-          if (!connected && !_connecting)
-            TextButton(onPressed: _connect, child: const Text('Yeniden bağlan')),
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'FOCUS BOAT',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Tekneniz Her An Kontrolünüzde',
+                  style: TextStyle(
+                    color: kTurquoise,
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSegmentBar() {
+    final tabs = [
+      ('Girişler', Icons.sensors),
+      ('Çıkışlar', Icons.power_settings_new),
+      ('Analoglar', Icons.speed),
+    ];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
+      child: AnimatedBuilder(
+        animation: _tabController,
+        builder: (context, _) {
+          return Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: Row(
+              children: List.generate(tabs.length, (i) {
+                final selected = _tabController.index == i;
+                final (label, icon) = tabs[i];
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _tabController.animateTo(i)),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: selected ? kNavy : Colors.transparent,
+                        borderRadius: BorderRadius.circular(11),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(icon, size: 18, color: selected ? kTurquoise : Colors.grey),
+                          const SizedBox(height: 3),
+                          Text(
+                            label,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: selected ? Colors.white : Colors.grey.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildDrawer() {
+    return Drawer(
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              color: kNavy,
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.asset('assets/logo_icon.png', height: 48, width: 48),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'FOCUS BOAT\nKontrol Sistemleri',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings_ethernet, color: kNavy),
+              title: const Text('Bağlantı Ayarları'),
+              onTap: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => SettingsScreen(
+                      settings: _settings,
+                      connected: _client?.isConnected ?? false,
+                      connecting: _connecting,
+                      connectionError: _connectionError,
+                      onReconnect: _connect,
+                    ),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: Icon(_editMode ? Icons.check : Icons.edit, color: kNavy),
+              title: Text(_editMode ? 'Düzenlemeyi bitir' : 'Etiketleri düzenle'),
+              onTap: () {
+                setState(() => _editMode = !_editMode);
+                Navigator.of(context).pop();
+              },
+            ),
+            const Spacer(),
+            const Padding(
+              padding: EdgeInsets.all(20),
+              child: Text(
+                'FocusBoat, teknenizi akıllı sistemlerle donatarak her an tam '
+                'kontrol ve güvenlik sağlar.',
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -333,7 +518,7 @@ class _HomePageState extends State<HomePage>
         final point = _inputs[i];
         return _IoCard(
           color: paletteColor(i),
-          icon: Icons.sensors,
+          icon: point.icon,
           label: point.label,
           active: point.boolValue,
           showEditBadge: _editMode,
@@ -360,7 +545,7 @@ class _HomePageState extends State<HomePage>
         final canToggle = _client?.isConnected ?? false;
         return _IoCard(
           color: paletteColor(i + 3),
-          icon: Icons.power_settings_new,
+          icon: point.icon,
           label: point.label,
           active: point.boolValue,
           showEditBadge: _editMode,
@@ -398,7 +583,7 @@ class _HomePageState extends State<HomePage>
                       height: 34,
                       decoration: BoxDecoration(color: color, shape: BoxShape.circle),
                       child: Icon(
-                        isControl ? Icons.tune : Icons.speed,
+                        point.icon,
                         color: Colors.white,
                         size: 18,
                       ),
