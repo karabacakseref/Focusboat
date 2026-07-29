@@ -43,7 +43,7 @@ class FocusBoatApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        scaffoldBackgroundColor: kBackground,
+        scaffoldBackgroundColor: const Color(0xFFF4F6FA),
         colorScheme: ColorScheme.fromSeed(
           seedColor: kNavy,
           primary: kNavy,
@@ -296,6 +296,7 @@ class _HomePageState extends State<HomePage>
   Widget build(BuildContext context) {
     final connected = _client?.isConnected ?? false;
     return Scaffold(
+      backgroundColor: kBackground,
       drawer: _buildDrawer(),
       appBar: AppBar(
         leading: Builder(
