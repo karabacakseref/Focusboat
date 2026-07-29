@@ -81,6 +81,12 @@ const int kInputCount = 14;
 const int kOutputCount = 10;
 const int kAnalogCount = 6;
 
+// 40001 tabanlı (Modicon) register adresleme:
+// 40001 = register 0. Girişler 40001'den, çıkışlar 40021'den, analoglar 40050'den başlar.
+const int kInputBase = 0; // 40001
+const int kOutputBase = 19; // 40020
+const int kAnalogBase = 49; // 40050
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
   @override
@@ -143,6 +149,7 @@ class _HomePageState extends State<HomePage>
     try {
       await client.connect();
       _client = client;
+      await _poll(); // bağlanır bağlanmaz PLC'deki anlık durumu hemen al
       _startPolling();
     } catch (e) {
       _connectionError = 'Bağlanamadı: $e';
@@ -198,17 +205,18 @@ class _HomePageState extends State<HomePage>
     if (client == null || !client.isConnected || _pollInFlight) return;
     _pollInFlight = true;
     try {
-      final inputVals = await client.readDiscreteInputs(0, kInputCount);
-      final outputVals = await client.readCoils(0, kOutputCount);
-      final analogVals = await client.readHoldingRegisters(0, kAnalogCount);
+      // Hepsi Holding Register (40001 tabanlı, FC03) üzerinden okunuyor.
+      final inputRegs = await client.readHoldingRegisters(kInputBase, kInputCount);
+      final outputRegs = await client.readHoldingRegisters(kOutputBase, kOutputCount);
+      final analogRegs = await client.readHoldingRegisters(kAnalogBase, kAnalogCount);
       for (int i = 0; i < kInputCount; i++) {
-        _inputs[i].boolValue = inputVals[i];
+        _inputs[i].boolValue = inputRegs[i] != 0;
       }
       for (int i = 0; i < kOutputCount; i++) {
-        _outputs[i].boolValue = outputVals[i];
+        _outputs[i].boolValue = outputRegs[i] != 0;
       }
       for (int i = 0; i < kAnalogCount; i++) {
-        _analogs[i].analogValue = analogVals[i].toDouble();
+        _analogs[i].analogValue = analogRegs[i].toDouble();
       }
       if (_activeAlarms.isEmpty) _alarmMuted = false;
       if (mounted) setState(() {});
@@ -233,7 +241,7 @@ class _HomePageState extends State<HomePage>
     final newValue = !point.boolValue;
     setState(() => point.boolValue = newValue); // anında geri bildirim
     try {
-      await client.writeSingleCoil(point.address, newValue);
+      await client.writeSingleRegister(kOutputBase + point.address, newValue ? 1 : 0);
     } catch (e) {
       setState(() => point.boolValue = !newValue); // hata varsa geri al
       if (mounted) {
@@ -248,7 +256,7 @@ class _HomePageState extends State<HomePage>
     final client = _client;
     if (client == null) return;
     try {
-      await client.writeSingleRegister(point.address, value.round());
+      await client.writeSingleRegister(kAnalogBase + point.address, value.round());
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
