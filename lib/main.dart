@@ -306,8 +306,8 @@ class _HomePageState extends State<HomePage>
           ),
         ),
         centerTitle: true,
-        title: Image.asset('assets/logo_icon.png', height: 240),
-        toolbarHeight: 248,
+        title: Image.asset('assets/logo_banner.png', height: 48),
+        toolbarHeight: 64,
         actions: [
           IconButton(
             tooltip: 'Bildirimler',
