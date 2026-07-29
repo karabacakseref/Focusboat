@@ -306,8 +306,8 @@ class _HomePageState extends State<HomePage>
           ),
         ),
         centerTitle: true,
-        title: Image.asset('assets/logo_icon.png', height: 100),
-        toolbarHeight: 108,
+        title: Image.asset('assets/logo_icon.png', height: 240),
+        toolbarHeight: 248,
         actions: [
           IconButton(
             tooltip: 'Bildirimler',
@@ -433,7 +433,7 @@ class _HomePageState extends State<HomePage>
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.fromLTRB(14, 12, 14, 4),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
         gradient: const LinearGradient(
@@ -450,36 +450,16 @@ class _HomePageState extends State<HomePage>
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Image.asset('assets/logo_icon.png', height: 44, width: 44),
-          ),
-          const SizedBox(width: 14),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'FOCUS BOAT',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 16,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  'Tekneniz Her An Kontrolünüzde',
-                  style: TextStyle(
-                    color: kTurquoise,
-                    fontSize: 12,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ],
+          Text(
+            'Tekneniz Her An Kontrolünüzde',
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.9),
+              fontSize: 19,
+              fontStyle: FontStyle.italic,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
