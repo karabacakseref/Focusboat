@@ -305,23 +305,8 @@ class _HomePageState extends State<HomePage>
             onPressed: () => Scaffold.of(ctx).openDrawer(),
           ),
         ),
-        title: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: Image.asset('assets/logo_icon.png', height: 32, width: 32),
-            ),
-            const SizedBox(width: 10),
-            const Text(
-              'FOCUS BOAT',
-              style: TextStyle(
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5,
-                color: kNavy,
-              ),
-            ),
-          ],
-        ),
+        centerTitle: true,
+        title: Image.asset('assets/logo_icon.png', height: 42),
         actions: [
           IconButton(
             tooltip: 'Bildirimler',
@@ -704,13 +689,13 @@ class _HomePageState extends State<HomePage>
                 Row(
                   children: [
                     Container(
-                      width: 34,
-                      height: 34,
+                      width: 46,
+                      height: 46,
                       decoration: BoxDecoration(color: color, shape: BoxShape.circle),
                       child: Icon(
                         point.icon,
                         color: Colors.white,
-                        size: 18,
+                        size: 24,
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -792,21 +777,22 @@ class _IoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fillColor = active ? color : Colors.white;
-    final contentColor = active ? Colors.white : color;
+    // Broşürdeki gibi: kart her zaman dolu renkli, ikon/yazı beyaz.
+    // Aktif durum (çıkış açık / giriş tetiklenmiş) parlak beyaz çerçeve ile vurgulanır.
     return Material(
-      color: fillColor,
-      borderRadius: BorderRadius.circular(16),
-      elevation: active ? 3 : 1,
+      color: color,
+      borderRadius: BorderRadius.circular(18),
+      elevation: active ? 6 : 2,
+      shadowColor: color.withOpacity(0.6),
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         onTap: onTap,
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: active ? Colors.transparent : color.withOpacity(0.35),
-              width: 1.5,
+              color: active ? Colors.white : Colors.white.withOpacity(0.0),
+              width: 3,
             ),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
@@ -815,26 +801,32 @@ class _IoCard extends StatelessWidget {
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(icon, color: contentColor, size: 26),
-                  const SizedBox(height: 8),
+                  Icon(icon, color: Colors.white, size: 36),
+                  const SizedBox(height: 9),
                   Text(
                     label,
                     textAlign: TextAlign.center,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: contentColor,
-                      fontWeight: FontWeight.w600,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
                       fontSize: 12.5,
                     ),
                   ),
                 ],
               ),
+              if (active)
+                const Positioned(
+                  top: 0,
+                  right: 0,
+                  child: Icon(Icons.check_circle, size: 18, color: Colors.white),
+                ),
               if (showEditBadge)
                 Positioned(
-                  top: -2,
-                  right: -2,
-                  child: Icon(Icons.edit, size: 14, color: contentColor.withOpacity(0.8)),
+                  bottom: 0,
+                  right: 0,
+                  child: Icon(Icons.edit, size: 14, color: Colors.white.withOpacity(0.85)),
                 ),
             ],
           ),
