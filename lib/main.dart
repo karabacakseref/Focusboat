@@ -306,7 +306,8 @@ class _HomePageState extends State<HomePage>
           ),
         ),
         centerTitle: true,
-        title: Image.asset('assets/logo_icon.png', height: 42),
+        title: Image.asset('assets/logo_icon.png', height: 60),
+        toolbarHeight: 64,
         actions: [
           IconButton(
             tooltip: 'Bildirimler',
@@ -777,13 +778,15 @@ class _IoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Broşürdeki gibi: kart her zaman dolu renkli, ikon/yazı beyaz.
-    // Aktif durum (çıkış açık / giriş tetiklenmiş) parlak beyaz çerçeve ile vurgulanır.
+    // Varsayılan: beyaz zemin + renkli ikon/çerçeve.
+    // Aktif (çıkış açık / giriş tetiklenmiş): renkli zemin + beyaz ikon.
+    final fillColor = active ? color : Colors.white;
+    final contentColor = active ? Colors.white : color;
     return Material(
-      color: color,
+      color: fillColor,
       borderRadius: BorderRadius.circular(18),
-      elevation: active ? 6 : 2,
-      shadowColor: color.withOpacity(0.6),
+      elevation: active ? 5 : 2,
+      shadowColor: color.withOpacity(0.5),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
         onTap: onTap,
@@ -791,8 +794,8 @@ class _IoCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: active ? Colors.white : Colors.white.withOpacity(0.0),
-              width: 3,
+              color: active ? Colors.transparent : color.withOpacity(0.45),
+              width: 2,
             ),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
@@ -801,15 +804,15 @@ class _IoCard extends StatelessWidget {
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(icon, color: Colors.white, size: 36),
+                  Icon(icon, color: contentColor, size: 36),
                   const SizedBox(height: 9),
                   Text(
                     label,
                     textAlign: TextAlign.center,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: contentColor,
                       fontWeight: FontWeight.w700,
                       fontSize: 12.5,
                     ),
@@ -817,16 +820,16 @@ class _IoCard extends StatelessWidget {
                 ],
               ),
               if (active)
-                const Positioned(
+                Positioned(
                   top: 0,
                   right: 0,
-                  child: Icon(Icons.check_circle, size: 18, color: Colors.white),
+                  child: Icon(Icons.check_circle, size: 18, color: contentColor),
                 ),
               if (showEditBadge)
                 Positioned(
                   bottom: 0,
                   right: 0,
-                  child: Icon(Icons.edit, size: 14, color: Colors.white.withOpacity(0.85)),
+                  child: Icon(Icons.edit, size: 14, color: contentColor.withOpacity(0.8)),
                 ),
             ],
           ),
