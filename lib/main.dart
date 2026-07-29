@@ -296,7 +296,7 @@ class _HomePageState extends State<HomePage>
   Widget build(BuildContext context) {
     final connected = _client?.isConnected ?? false;
     return Scaffold(
-      backgroundColor: kBackground,
+      backgroundColor: const Color(0xFFF4F6FA),
       drawer: _buildDrawer(),
       appBar: AppBar(
         leading: Builder(
@@ -306,8 +306,8 @@ class _HomePageState extends State<HomePage>
           ),
         ),
         centerTitle: true,
-        title: Image.asset('assets/logo_icon.png', height: 78),
-        toolbarHeight: 86,
+        title: Image.asset('assets/logo_icon.png', height: 100),
+        toolbarHeight: 108,
         actions: [
           IconButton(
             tooltip: 'Bildirimler',
