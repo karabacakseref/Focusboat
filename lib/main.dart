@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
-import 'package:vibration/vibration.dart';
 import 'io_point.dart';
 import 'modbus_client.dart';
 import 'storage.dart';
@@ -164,24 +163,12 @@ class _HomePageState extends State<HomePage>
     if (_alarmMuted) return;
     final alarms = _activeAlarms;
     if (alarms.isEmpty) return;
-    _vibrateAlarm();
+    HapticFeedback.vibrate();
     final text = alarms.length == 1
         ? 'Uyarı, ${alarms.first.label}'
         : '${alarms.length} uyarı aktif. ${alarms.map((p) => p.label).join(", ")}';
     await _tts.stop();
     await _tts.speak(text);
-  }
-
-  Future<void> _vibrateAlarm() async {
-    try {
-      final hasVibrator = await Vibration.hasVibrator();
-      if (hasVibrator) {
-        // Çift vurgulu, dikkat çekici alarm titreşimi
-        Vibration.vibrate(pattern: [0, 400, 150, 400, 150, 400]);
-      }
-    } catch (_) {
-      // Titreşim desteklenmiyorsa sessizce geç
-    }
   }
 
   // ---- Test amaçlı manuel alarm tetikleme (Ayarlar ekranından) ----
