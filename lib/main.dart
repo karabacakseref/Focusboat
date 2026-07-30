@@ -4,6 +4,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:torch_light/torch_light.dart';
+import 'package:flutter_compass/flutter_compass.dart';
+import 'package:sensors_plus/sensors_plus.dart';
+import 'dart:math' as math;
 import 'io_point.dart';
 import 'modbus_client.dart';
 import 'storage.dart';
@@ -111,6 +114,10 @@ class _HomePageState extends State<HomePage>
   bool _alarmMuted = false;
   final FlutterTts _tts = FlutterTts();
   bool _torchOn = false;
+  double? _heading;
+  double? _pressure;
+  StreamSubscription<CompassEvent>? _compassSub;
+  StreamSubscription<BarometerEvent>? _barometerSub;
 
   final List<IOPoint> _inputs = List.generate(
       kInputCount, (i) => IOPoint.defaultFor(PointCategory.input, i));
@@ -122,11 +129,24 @@ class _HomePageState extends State<HomePage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _tts.setLanguage('tr-TR');
     _tts.setSpeechRate(0.45);
     _tts.setVolume(1.0);
     WakelockPlus.enable(); // teknede izlerken ekran kararmasın
+    _compassSub = FlutterCompass.events?.listen((event) {
+      if (mounted) setState(() => _heading = event.heading);
+    });
+    try {
+      _barometerSub = barometerEventStream().listen(
+        (event) {
+          if (mounted) setState(() => _pressure = event.pressure);
+        },
+        onError: (_) {},
+      );
+    } catch (_) {
+      // Cihazda barometre sensörü olmayabilir, sorun değil
+    }
     _alarmTimer = Timer.periodic(const Duration(seconds: 6), (_) => _checkAlarm());
     _bootstrap();
   }
@@ -317,6 +337,8 @@ class _HomePageState extends State<HomePage>
     _alarmTimer?.cancel();
     _tts.stop();
     WakelockPlus.disable();
+    _compassSub?.cancel();
+    _barometerSub?.cancel();
     _client?.disconnect();
     _tabController.dispose();
     super.dispose();
@@ -413,6 +435,7 @@ class _HomePageState extends State<HomePage>
                 _buildInputsTab(),
                 _buildOutputsTab(),
                 _buildAnalogsTab(),
+                _buildNavigationTab(),
               ],
             ),
           ),
@@ -502,6 +525,7 @@ class _HomePageState extends State<HomePage>
       ('Girişler', Icons.sensors),
       ('Çıkışlar', Icons.power_settings_new),
       ('Analoglar', Icons.speed),
+      ('Seyir', Icons.explore),
     ];
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
@@ -755,6 +779,114 @@ class _HomePageState extends State<HomePage>
           ),
         );
       },
+    );
+  }
+
+  String _compassLabel(double heading) {
+    const labels = ['K', 'KD', 'D', 'GD', 'G', 'GB', 'B', 'KB'];
+    final index = ((heading % 360) / 45).round() % 8;
+    return labels[index];
+  }
+
+  Widget _buildNavigationTab() {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        // ---- Pusula kartı ----
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: kNavy.withOpacity(0.15)),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+            ],
+          ),
+          child: Column(
+            children: [
+              const Text('Pusula', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+              const SizedBox(height: 16),
+              if (_heading == null)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Text('Pusula verisi bekleniyor…', style: TextStyle(color: Colors.grey)),
+                )
+              else
+                Column(
+                  children: [
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0, end: _heading! * (math.pi / 180) * -1),
+                      duration: const Duration(milliseconds: 200),
+                      builder: (context, angle, child) => Transform.rotate(
+                        angle: angle,
+                        child: child,
+                      ),
+                      child: Icon(Icons.explore, size: 96, color: kTurquoise),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      '${_heading!.toStringAsFixed(0)}°  ${_compassLabel(_heading!)}',
+                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: kNavy),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        // ---- Barometre kartı ----
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: kNavy.withOpacity(0.15)),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(color: kNavy, shape: BoxShape.circle),
+                child: const Icon(Icons.speed, color: Colors.white, size: 28),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Barometrik Basınç',
+                        style: TextStyle(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 4),
+                    Text(
+                      _pressure != null
+                          ? '${_pressure!.toStringAsFixed(1)} hPa'
+                          : 'Bu cihazda barometre sensörü yok',
+                      style: TextStyle(
+                        fontSize: _pressure != null ? 20 : 13,
+                        fontWeight: FontWeight.w700,
+                        color: _pressure != null ? kNavy : Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 4),
+          child: Text(
+            'Not: Ani basınç düşüşü genelde yaklaşan bir fırtına/hava değişimi işaretidir.',
+            style: TextStyle(color: Colors.grey, fontSize: 12),
+          ),
+        ),
+      ],
     );
   }
 }
