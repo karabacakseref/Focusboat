@@ -84,7 +84,7 @@ const int kAnalogCount = 6;
 // 40001 tabanlı (Modicon) register adresleme:
 // 40001 = register 0. Girişler 40001'den, çıkışlar 40019'dan, analoglar 40050'den başlar.
 const int kInputBase = 0; // 40001
-const int kOutputBase = 18; // 40019
+const int kOutputBase = 20; // 40021
 const int kAnalogBase = 49; // 40050
 
 class HomePage extends StatefulWidget {
