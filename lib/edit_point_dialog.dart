@@ -33,43 +33,10 @@ Future<void> showEditPointDialog(BuildContext context, IOPoint point,
                 ),
                 if (isAnalog) ...[
                   const SizedBox(height: 16),
-                  const Text('Bu analog sinyal ne için kullanılacak?'),
-                  RadioListTile<AnalogMode>(
-                    dense: true,
-                    title: const Text('Sadece okuma / gösterge'),
-                    value: AnalogMode.display,
-                    groupValue: selectedMode,
-                    onChanged: (v) => setState(() => selectedMode = v!),
+                  const Text(
+                    'Analog sinyaller her zaman salt okunurdur (PLC\'den gelen değeri gösterir).',
+                    style: TextStyle(color: Colors.grey, fontSize: 12.5),
                   ),
-                  RadioListTile<AnalogMode>(
-                    dense: true,
-                    title: const Text('Kontrol edilecek (kaydırıcı ile ayar)'),
-                    value: AnalogMode.control,
-                    groupValue: selectedMode,
-                    onChanged: (v) => setState(() => selectedMode = v!),
-                  ),
-                  if (selectedMode == AnalogMode.control)
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: minController,
-                            keyboardType: TextInputType.number,
-                            decoration:
-                                const InputDecoration(labelText: 'Min'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextField(
-                            controller: maxController,
-                            keyboardType: TextInputType.number,
-                            decoration:
-                                const InputDecoration(labelText: 'Max'),
-                          ),
-                        ),
-                      ],
-                    ),
                 ],
               ],
             ),

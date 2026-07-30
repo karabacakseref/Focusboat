@@ -663,7 +663,6 @@ class _HomePageState extends State<HomePage>
       separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (context, i) {
         final point = _analogs[i];
-        final isControl = point.analogMode == AnalogMode.control;
         final color = paletteColor(i + 6);
         return Card(
           shape: RoundedRectangleBorder(
@@ -707,36 +706,17 @@ class _HomePageState extends State<HomePage>
                   ],
                 ),
                 Text(
-                  'Adres: ${point.address}  •  '
-                  '${isControl ? "Kontrol (kaydırıcı)" : "Gösterge (salt okunur)"}',
+                  'Adres: ${point.address}  •  Gösterge (salt okunur)',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: 4),
-                if (isControl)
-                  Row(
-                    children: [
-                      Text(point.analogMin.toStringAsFixed(0)),
-                      Expanded(
-                        child: Slider(
-                          value: point.analogValue.clamp(point.analogMin, point.analogMax),
-                          min: point.analogMin,
-                          max: point.analogMax,
-                          activeColor: kTurquoise,
-                          onChanged: (v) => setState(() => point.analogValue = v),
-                          onChangeEnd: (v) => _writeAnalog(point, v),
-                        ),
-                      ),
-                      Text(point.analogMax.toStringAsFixed(0)),
-                    ],
-                  )
-                else
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    child: Text(
-                      point.analogValue.toStringAsFixed(0),
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Text(
+                    point.analogValue.toStringAsFixed(0),
+                    style: Theme.of(context).textTheme.headlineSmall,
                   ),
+                ),
               ],
             ),
           ),
