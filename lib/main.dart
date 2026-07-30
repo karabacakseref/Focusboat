@@ -769,23 +769,32 @@ class _IoCard extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
           child: Stack(
             children: [
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(icon, color: contentColor, size: 26),
-                  const SizedBox(height: 6),
-                  Text(
-                    label,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: contentColor,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 10.5,
+              Positioned.fill(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Icon(icon, color: contentColor, size: 26),
+                    const SizedBox(height: 6),
+                    SizedBox(
+                      height: 26, // 2 satırlık sabit alan: kısa/uzun etiketlerde ikon hep aynı hizada kalsın
+                      child: Center(
+                        child: Text(
+                          label,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: contentColor,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 10.5,
+                            height: 1.15,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               if (active)
                 Positioned(
