@@ -25,6 +25,15 @@ jobs:
             rm -rf temp_scaffold
           fi
 
+      - name: Release manifest'ine İnternet iznini ekle (ağ bağlantısı için şart)
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          if ! grep -q "android.permission.INTERNET" "$MANIFEST"; then
+            sed -i '/<manifest /a\    <uses-permission android:name="android.permission.INTERNET" />' "$MANIFEST"
+          fi
+          echo "----- AndroidManifest.xml -----"
+          cat "$MANIFEST"
+
       - name: Bump Android compileSdk/targetSdk (bazı paketler için gerekli)
         run: |
           for f in android/app/build.gradle.kts android/app/build.gradle; do
@@ -57,3 +66,4 @@ jobs:
         with:
           name: focus-boat-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+  
