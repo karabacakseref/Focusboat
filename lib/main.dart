@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:torch_light/torch_light.dart';
 import 'io_point.dart';
 import 'modbus_client.dart';
 import 'storage.dart';
@@ -108,6 +110,7 @@ class _HomePageState extends State<HomePage>
   Timer? _alarmTimer;
   bool _alarmMuted = false;
   final FlutterTts _tts = FlutterTts();
+  bool _torchOn = false;
 
   final List<IOPoint> _inputs = List.generate(
       kInputCount, (i) => IOPoint.defaultFor(PointCategory.input, i));
@@ -123,6 +126,7 @@ class _HomePageState extends State<HomePage>
     _tts.setLanguage('tr-TR');
     _tts.setSpeechRate(0.45);
     _tts.setVolume(1.0);
+    WakelockPlus.enable(); // teknede izlerken ekran kararmasın
     _alarmTimer = Timer.periodic(const Duration(seconds: 6), (_) => _checkAlarm());
     _bootstrap();
   }
@@ -266,6 +270,23 @@ class _HomePageState extends State<HomePage>
     }
   }
 
+  Future<void> _toggleTorch() async {
+    try {
+      if (_torchOn) {
+        await TorchLight.disableTorch();
+      } else {
+        await TorchLight.enableTorch();
+      }
+      setState(() => _torchOn = !_torchOn);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Bu cihazda el feneri kullanılamıyor')),
+        );
+      }
+    }
+  }
+
   Future<void> _speakFuelRange() async {
     final tankLiters = _settings.fuelTankLiters;
     final consumption = _settings.fuelConsumptionPer100Km;
@@ -295,6 +316,7 @@ class _HomePageState extends State<HomePage>
     _pollTimer?.cancel();
     _alarmTimer?.cancel();
     _tts.stop();
+    WakelockPlus.disable();
     _client?.disconnect();
     _tabController.dispose();
     super.dispose();
@@ -588,6 +610,17 @@ class _HomePageState extends State<HomePage>
                 Navigator.of(context).pop();
               },
             ),
+            ListTile(
+              leading: Icon(
+                _torchOn ? Icons.flashlight_on : Icons.flashlight_off,
+                color: _torchOn ? Colors.amber.shade700 : kNavy,
+              ),
+              title: Text(_torchOn ? 'El Fenerini Kapat' : 'El Fenerini Aç (Acil Sinyal)'),
+              onTap: () {
+                _toggleTorch();
+                Navigator.of(context).pop();
+              },
+            ),
             const Spacer(),
             const Padding(
               padding: EdgeInsets.all(20),
@@ -607,10 +640,10 @@ class _HomePageState extends State<HomePage>
     return GridView.builder(
       padding: const EdgeInsets.all(12),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        mainAxisSpacing: 8,
-        crossAxisSpacing: 8,
-        childAspectRatio: 0.82,
+        crossAxisCount: 3,
+        mainAxisSpacing: 10,
+        crossAxisSpacing: 10,
+        childAspectRatio: 1.0,
       ),
       itemCount: _inputs.length,
       itemBuilder: (context, i) {
@@ -633,10 +666,10 @@ class _HomePageState extends State<HomePage>
     return GridView.builder(
       padding: const EdgeInsets.all(12),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        mainAxisSpacing: 8,
-        crossAxisSpacing: 8,
-        childAspectRatio: 0.82,
+        crossAxisCount: 3,
+        mainAxisSpacing: 10,
+        crossAxisSpacing: 10,
+        childAspectRatio: 1.0,
       ),
       itemCount: _outputs.length,
       itemBuilder: (context, i) {
@@ -766,7 +799,7 @@ class _IoCard extends StatelessWidget {
               width: 2,
             ),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
           child: Stack(
             children: [
               Positioned.fill(
@@ -774,10 +807,10 @@ class _IoCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Icon(icon, color: contentColor, size: 26),
+                    Icon(icon, color: contentColor, size: 32),
                     const SizedBox(height: 6),
                     SizedBox(
-                      height: 26, // 2 satırlık sabit alan: kısa/uzun etiketlerde ikon hep aynı hizada kalsın
+                      height: 32, // 2 satırlık sabit alan: kısa/uzun etiketlerde ikon hep aynı hizada kalsın
                       child: Center(
                         child: Text(
                           label,
@@ -787,7 +820,7 @@ class _IoCard extends StatelessWidget {
                           style: TextStyle(
                             color: contentColor,
                             fontWeight: FontWeight.w700,
-                            fontSize: 10.5,
+                            fontSize: 12,
                             height: 1.15,
                           ),
                         ),
