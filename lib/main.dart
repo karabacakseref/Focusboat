@@ -210,10 +210,10 @@ class _HomePageState extends State<HomePage>
       final outputRegs = await client.readHoldingRegisters(kOutputBase, kOutputCount);
       final analogRegs = await client.readHoldingRegisters(kAnalogBase, kAnalogCount);
       for (int i = 0; i < kInputCount; i++) {
-        _inputs[i].boolValue = inputRegs[i] != 0;
+        _inputs[i].boolValue = inputRegs[i] == 1;
       }
       for (int i = 0; i < kOutputCount; i++) {
-        _outputs[i].boolValue = outputRegs[i] != 0;
+        _outputs[i].boolValue = outputRegs[i] == 1;
       }
       for (int i = 0; i < kAnalogCount; i++) {
         _analogs[i].analogValue = analogRegs[i].toDouble();
