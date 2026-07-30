@@ -78,13 +78,13 @@ class FocusBoatApp extends StatelessWidget {
 
 // ---- Sabit adres planı (14 giriş, 10 çıkış, 6 analog) ----
 const int kInputCount = 14;
-const int kOutputCount = 10;
+const int kOutputCount = 15;
 const int kAnalogCount = 6;
 
 // 40001 tabanlı (Modicon) register adresleme:
-// 40001 = register 0. Girişler 40001'den, çıkışlar 40021'den, analoglar 40050'den başlar.
+// 40001 = register 0. Girişler 40001'den, çıkışlar 40019'dan, analoglar 40050'den başlar.
 const int kInputBase = 0; // 40001
-const int kOutputBase = 19; // 40020
+const int kOutputBase = 18; // 40019
 const int kAnalogBase = 49; // 40050
 
 class HomePage extends StatefulWidget {

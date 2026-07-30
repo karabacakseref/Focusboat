@@ -92,16 +92,22 @@ class IOPoint {
         icon: meta.icon,
       );
     }
-    // Liste dışında kalan adresler için genel isim
+    // Liste dışında kalan adresler için genel isim + kategoriye uygun ikon
     final prefix = switch (category) {
       PointCategory.input => 'Giriş',
       PointCategory.output => 'Çıkış',
       PointCategory.analog => 'Analog',
     };
+    final fallbackIcon = switch (category) {
+      PointCategory.input => Icons.sensors,
+      PointCategory.output => Icons.electrical_services,
+      PointCategory.analog => Icons.speed,
+    };
     return IOPoint(
       category: category,
       address: address,
       label: '$prefix ${address + 1}',
+      icon: fallbackIcon,
     );
   }
 
