@@ -607,10 +607,10 @@ class _HomePageState extends State<HomePage>
     return GridView.builder(
       padding: const EdgeInsets.all(12),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        mainAxisSpacing: 10,
-        crossAxisSpacing: 10,
-        childAspectRatio: 0.85,
+        crossAxisCount: 4,
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
+        childAspectRatio: 0.82,
       ),
       itemCount: _inputs.length,
       itemBuilder: (context, i) {
@@ -633,10 +633,10 @@ class _HomePageState extends State<HomePage>
     return GridView.builder(
       padding: const EdgeInsets.all(12),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        mainAxisSpacing: 10,
-        crossAxisSpacing: 10,
-        childAspectRatio: 0.85,
+        crossAxisCount: 4,
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
+        childAspectRatio: 0.82,
       ),
       itemCount: _outputs.length,
       itemBuilder: (context, i) {
@@ -766,14 +766,14 @@ class _IoCard extends StatelessWidget {
               width: 2,
             ),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
           child: Stack(
             children: [
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(icon, color: contentColor, size: 36),
-                  const SizedBox(height: 9),
+                  Icon(icon, color: contentColor, size: 26),
+                  const SizedBox(height: 6),
                   Text(
                     label,
                     textAlign: TextAlign.center,
@@ -782,7 +782,7 @@ class _IoCard extends StatelessWidget {
                     style: TextStyle(
                       color: contentColor,
                       fontWeight: FontWeight.w700,
-                      fontSize: 12.5,
+                      fontSize: 10.5,
                     ),
                   ),
                 ],
