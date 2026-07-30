@@ -113,7 +113,6 @@ class _HomePageState extends State<HomePage>
   Timer? _alarmTimer;
   bool _alarmMuted = false;
   final FlutterTts _tts = FlutterTts();
-  bool _torchOn = false;
   double? _heading;
   double? _pressure;
   StreamSubscription<CompassEvent>? _compassSub;
@@ -195,6 +194,7 @@ class _HomePageState extends State<HomePage>
     final alarms = _activeAlarms;
     if (alarms.isEmpty) return;
     HapticFeedback.vibrate();
+    _blinkTorchAlarm(); // fenerle görsel uyarı (bekletmeden, paralel)
     final text = alarms.length == 1
         ? 'Uyarı, ${alarms.first.label}'
         : '${alarms.length} uyarı aktif. ${alarms.map((p) => p.label).join(", ")}';
@@ -290,20 +290,16 @@ class _HomePageState extends State<HomePage>
     }
   }
 
-  Future<void> _toggleTorch() async {
+  Future<void> _blinkTorchAlarm() async {
     try {
-      if (_torchOn) {
-        await TorchLight.disableTorch();
-      } else {
+      for (int i = 0; i < 4; i++) {
         await TorchLight.enableTorch();
+        await Future.delayed(const Duration(milliseconds: 250));
+        await TorchLight.disableTorch();
+        await Future.delayed(const Duration(milliseconds: 250));
       }
-      setState(() => _torchOn = !_torchOn);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Bu cihazda el feneri kullanılamıyor')),
-        );
-      }
+    } catch (_) {
+      // Cihazda fener/kamera yoksa sessizce geç
     }
   }
 
@@ -631,17 +627,6 @@ class _HomePageState extends State<HomePage>
               title: Text(_editMode ? 'Düzenlemeyi bitir' : 'Etiketleri düzenle'),
               onTap: () {
                 setState(() => _editMode = !_editMode);
-                Navigator.of(context).pop();
-              },
-            ),
-            ListTile(
-              leading: Icon(
-                _torchOn ? Icons.flashlight_on : Icons.flashlight_off,
-                color: _torchOn ? Colors.amber.shade700 : kNavy,
-              ),
-              title: Text(_torchOn ? 'El Fenerini Kapat' : 'El Fenerini Aç (Acil Sinyal)'),
-              onTap: () {
-                _toggleTorch();
                 Navigator.of(context).pop();
               },
             ),
