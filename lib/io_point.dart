@@ -28,13 +28,17 @@ const List<_DefaultMeta> _outputDefaults = [
   _DefaultMeta('Sintine Pompası', Icons.water),
   _DefaultMeta('İskele Lambası', Icons.lightbulb),
   _DefaultMeta('Hidrofor Pompa', Icons.plumbing),
-  _DefaultMeta('Irgat Motoru', Icons.anchor),
+  _DefaultMeta('Irgat Motoru İleri', Icons.arrow_upward),
+  _DefaultMeta('Irgat Motoru Geri', Icons.arrow_downward),
   _DefaultMeta('İç Aydınlatma', Icons.lightbulb_outline),
   _DefaultMeta('Buzdolabı', Icons.kitchen),
   _DefaultMeta('Fan', Icons.air),
   _DefaultMeta('Korna', Icons.campaign),
   _DefaultMeta('Çıkış 9', Icons.power),
   _DefaultMeta('Çıkış 10', Icons.power),
+  _DefaultMeta('Priz 1', Icons.electrical_services),
+  _DefaultMeta('Priz 2', Icons.electrical_services),
+  _DefaultMeta('Priz 3', Icons.electrical_services),
 ];
 
 const List<_DefaultMeta> _analogDefaults = [
