@@ -83,7 +83,7 @@ class FocusBoatApp extends StatelessWidget {
 
 // ---- Sabit adres planı (14 giriş, 10 çıkış, 6 analog) ----
 const int kInputCount = 14;
-const int kOutputCount = 15;
+const int kOutputCount = 14;
 const int kAnalogCount = 6;
 
 // 40001 tabanlı (Modicon) register adresleme:
@@ -748,7 +748,7 @@ class _HomePageState extends State<HomePage>
                   ],
                 ),
                 Text(
-                  'Adres: ${point.address}  •  Gösterge (salt okunur)',
+                  'Gösterge (salt okunur)',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: 4),
