@@ -17,6 +17,7 @@ dependencies:
   torch_light: ^1.1.0
   flutter_compass: ^0.8.1
   sensors_plus: ^6.0.1
+  http: ^1.2.2
 
 dev_dependencies:
   flutter_test:
