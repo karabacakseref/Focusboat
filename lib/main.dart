@@ -9,6 +9,7 @@ import 'package:sensors_plus/sensors_plus.dart';
 import 'dart:math' as math;
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'io_point.dart';
 import 'modbus_client.dart';
 import 'storage.dart';
@@ -125,6 +126,9 @@ class _HomePageState extends State<HomePage>
   StreamSubscription<BarometerEvent>? _barometerSub;
   Timer? _weatherTimer;
   bool _weatherOk = false;
+  final stt.SpeechToText _speech = stt.SpeechToText();
+  bool _speechAvailable = false;
+  bool _isListening = false;
   double? _weatherTemp;
   int? _weatherHumidity;
   String? _weatherError;
@@ -231,6 +235,86 @@ class _HomePageState extends State<HomePage>
     try {
       await _networkChannel.invokeMethod('releaseWifi');
     } catch (_) {}
+  }
+
+  Future<void> _initSpeech() async {
+    try {
+      _speechAvailable = await _speech.initialize();
+      if (mounted) setState(() {});
+    } catch (_) {
+      _speechAvailable = false;
+    }
+  }
+
+  Future<void> _startVoiceCommand() async {
+    if (!_speechAvailable) {
+      await _initSpeech();
+      if (!_speechAvailable) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Ses tanıma bu cihazda kullanılamıyor')),
+          );
+        }
+        return;
+      }
+    }
+    setState(() => _isListening = true);
+    await _speech.listen(
+      localeId: 'tr_TR',
+      onResult: (result) {
+        if (result.finalResult) {
+          _handleVoiceCommand(result.recognizedWords);
+        }
+      },
+    );
+  }
+
+  Future<void> _handleVoiceCommand(String text) async {
+    if (mounted) setState(() => _isListening = false);
+    final lower = text.toLowerCase().trim();
+    if (lower.isEmpty) return;
+
+    final isOn = lower.contains('aç');
+    final isOff = lower.contains('kapat') || lower.contains('kapa');
+
+    if (!isOn && !isOff) {
+      await _tts.speak('Komut anlaşılamadı');
+      return;
+    }
+
+    // Etiket kelimeleriyle komut metni arasında basit eşleşme puanı hesapla
+    IOPoint? matched;
+    int bestScore = 0;
+    for (final point in _outputs) {
+      final words = point.label.toLowerCase().split(' ');
+      int score = 0;
+      for (final w in words) {
+        if (w.length > 2 && lower.contains(w)) score++;
+      }
+      if (score > bestScore) {
+        bestScore = score;
+        matched = point;
+      }
+    }
+
+    if (matched == null || bestScore == 0) {
+      await _tts.speak('Hangi çıkış olduğunu anlayamadım');
+      return;
+    }
+
+    if (_client == null) {
+      await _tts.speak('PLC bağlı değil');
+      return;
+    }
+
+    final targetValue = isOn;
+    if (matched.boolValue == targetValue) {
+      await _tts.speak('${matched.label} zaten ${isOn ? "açık" : "kapalı"}');
+      return;
+    }
+
+    await _toggleOutput(matched);
+    await _tts.speak('${matched.label} ${isOn ? "açıldı" : "kapatıldı"}');
   }
 
   Future<void> _connect() async {
@@ -409,6 +493,7 @@ class _HomePageState extends State<HomePage>
     _pollTimer?.cancel();
     _alarmTimer?.cancel();
     _tts.stop();
+    _speech.stop();
     WakelockPlus.disable();
     _compassSub?.cancel();
     _barometerSub?.cancel();
@@ -516,6 +601,12 @@ class _HomePageState extends State<HomePage>
             ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: _isListening ? Colors.red : kTurquoise,
+        tooltip: 'Sesli komutla çıkış aç/kapa',
+        onPressed: _isListening ? () => _speech.stop() : _startVoiceCommand,
+        child: Icon(_isListening ? Icons.mic : Icons.mic_none, color: Colors.white),
       ),
     );
   }
