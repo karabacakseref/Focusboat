@@ -33,12 +33,8 @@ const List<_DefaultMeta> _outputDefaults = [
   _DefaultMeta('İç Aydınlatma', Icons.lightbulb_outline),
   _DefaultMeta('Buzdolabı', Icons.kitchen),
   _DefaultMeta('Fan', Icons.air),
+  _DefaultMeta('USB', Icons.usb),
   _DefaultMeta('Korna', Icons.campaign),
-  _DefaultMeta('Çıkış 9', Icons.power),
-  _DefaultMeta('Çıkış 10', Icons.power),
-  _DefaultMeta('Priz 1', Icons.electrical_services),
-  _DefaultMeta('Priz 2', Icons.electrical_services),
-  _DefaultMeta('Priz 3', Icons.electrical_services),
 ];
 
 const List<_DefaultMeta> _analogDefaults = [

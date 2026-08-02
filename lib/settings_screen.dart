@@ -98,7 +98,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(width: 10),
           Expanded(child: Text(text, style: TextStyle(color: color.withOpacity(0.9)))),
           if (!widget.connected && !widget.connecting)
-            TextButton(onPressed: widget.onReconnect, child: const Text('Yeniden bağlan')),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Yeniden bağlan'),
+            ),
         ],
       ),
     );
