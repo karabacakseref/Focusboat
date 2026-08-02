@@ -9,15 +9,15 @@ import 'package:sensors_plus/sensors_plus.dart';
 import 'dart:math' as math;
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-
-// PLC (WiFi) ile internet (mobil veri) trafiğini yönlendirmek için
-// native (Kotlin) tarafla konuşan kanal.
-const MethodChannel _networkChannel = MethodChannel('focusboat/network');
 import 'io_point.dart';
 import 'modbus_client.dart';
 import 'storage.dart';
 import 'edit_point_dialog.dart';
 import 'settings_screen.dart';
+
+// PLC (WiFi) ile internet (mobil veri) trafiğini yönlendirmek için
+// native (Kotlin) tarafla konuşan kanal.
+const MethodChannel _networkChannel = MethodChannel('focusboat/network');
 
 void main() {
   runApp(const FocusBoatApp());
