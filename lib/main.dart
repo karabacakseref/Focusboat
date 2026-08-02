@@ -9,7 +9,10 @@ import 'package:sensors_plus/sensors_plus.dart';
 import 'dart:math' as math;
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:wifi_iot/wifi_iot.dart';
+
+// PLC (WiFi) ile internet (mobil veri) trafiğini yönlendirmek için
+// native (Kotlin) tarafla konuşan kanal.
+const MethodChannel _networkChannel = MethodChannel('focusboat/network');
 import 'io_point.dart';
 import 'modbus_client.dart';
 import 'storage.dart';
@@ -137,6 +140,7 @@ class _HomePageState extends State<HomePage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(_handleTabChangeForNetwork);
     _tts.setLanguage('tr-TR');
     _tts.setSpeechRate(0.45);
     _tts.setVolume(1.0);
@@ -165,11 +169,6 @@ class _HomePageState extends State<HomePage>
   /// erişip erişemediğini test etmek için kullanılır.
   Future<void> _fetchWeather() async {
     try {
-      // Bu isteğin internete (mobil veriye) gidebilmesi için WiFi zorlamasını
-      // geçici olarak kaldırıyoruz — yoksa istek de WiFi'ye (internetsiz) gider.
-      try {
-        await WiFiForIoTPlugin.forceWifiUsage(false);
-      } catch (_) {}
       final uri = Uri.parse(
         'https://api.open-meteo.com/v1/forecast'
         '?latitude=41.01&longitude=28.97'
@@ -196,9 +195,6 @@ class _HomePageState extends State<HomePage>
         _weatherHumidity = null;
         _weatherError = 'Bağlantı yok';
       });
-    } finally {
-      // Hava durumu isteği bitti, PLC trafiği için tekrar WiFi'yi zorla.
-      if (_client != null) await _forceWifiForPlc();
     }
   }
 
@@ -211,12 +207,40 @@ class _HomePageState extends State<HomePage>
     _connect();
   }
 
+  /// "Seyir" sekmesine (index 3, hava durumu/internet testi) girildiğinde
+  /// WiFi zorlamasını bırakıp mobil veriye izin verir; başka bir sekmeye
+  /// dönüldüğünde PLC trafiği için tekrar WiFi'yi zorlar.
+  void _handleTabChangeForNetwork() {
+    if (_tabController.indexIsChanging) return; // geçiş tamamlanana kadar bekle
+    if (_tabController.index == 3) {
+      _releaseWifiForInternet();
+    } else {
+      _forceWifiForPlc();
+    }
+  }
+
+  Future<void> _forceWifiForPlc() async {
+    try {
+      await _networkChannel.invokeMethod('forceWifi');
+    } catch (_) {
+      // Native kanal yoksa (ör. eski derleme) sessizce geç
+    }
+  }
+
+  Future<void> _releaseWifiForInternet() async {
+    try {
+      await _networkChannel.invokeMethod('releaseWifi');
+    } catch (_) {}
+  }
+
   Future<void> _connect() async {
     setState(() {
       _connecting = true;
       _connectionError = null;
     });
-    await _forceWifiForPlc(); // PLC trafiği mobil veri varken de WiFi'den gitsin
+    if (_tabController.index != 3) {
+      await _forceWifiForPlc();
+    }
     final client = ModbusTcpClient(
       host: _settings.host,
       port: _settings.port,
@@ -232,17 +256,6 @@ class _HomePageState extends State<HomePage>
       _client = null;
     } finally {
       if (mounted) setState(() => _connecting = false);
-    }
-  }
-
-  /// Mobil veri açık olsa bile PLC (yerel ağ) trafiğinin WiFi üzerinden
-  /// gitmesini zorlar — Android, internetsiz WiFi'yi normalde düşük
-  /// öncelikli sayıp trafiği mobil veriye kaydırabiliyor, bunu engeller.
-  Future<void> _forceWifiForPlc() async {
-    try {
-      await WiFiForIoTPlugin.forceWifiUsage(true);
-    } catch (_) {
-      // Bazı cihaz/Android sürümlerinde desteklenmeyebilir, sorun değil
     }
   }
 
@@ -401,6 +414,8 @@ class _HomePageState extends State<HomePage>
     _barometerSub?.cancel();
     _weatherTimer?.cancel();
     _client?.disconnect();
+    _tabController.removeListener(_handleTabChangeForNetwork);
+    _releaseWifiForInternet(); // ağ bağlamasını serbest bırak
     _tabController.dispose();
     super.dispose();
   }
