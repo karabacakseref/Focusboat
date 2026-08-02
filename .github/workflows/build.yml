@@ -25,12 +25,17 @@ jobs:
             rm -rf temp_scaffold
           fi
 
-      - name: Release manifest'ine İnternet iznini ekle (ağ bağlantısı için şart)
+      - name: Release manifest'ine İnternet ve Mikrofon iznini ekle
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           if ! grep -q "android.permission.INTERNET" "$MANIFEST"; then
             sed -i 's#<manifest xmlns:android="http://schemas.android.com/apk/res/android">#&\n    <uses-permission android:name="android.permission.INTERNET" />#' "$MANIFEST"
           fi
+          if ! grep -q "android.permission.RECORD_AUDIO" "$MANIFEST"; then
+            sed -i 's#<manifest xmlns:android="http://schemas.android.com/apk/res/android">#&\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />#' "$MANIFEST"
+          fi
+          echo "----- AndroidManifest.xml -----"
+          cat "$MANIFEST"
 
       - name: Bump Android compileSdk/targetSdk (bazı paketler için gerekli)
         run: |
@@ -58,6 +63,8 @@ jobs:
           MAIN_ACTIVITY_PATH="android/app/src/main/kotlin/com/fgi/focusboat/focus_boat/MainActivity.kt"
           mkdir -p "$(dirname "$MAIN_ACTIVITY_PATH")"
           cp native/MainActivity.kt "$MAIN_ACTIVITY_PATH"
+          echo "----- MainActivity.kt -----"
+          cat "$MAIN_ACTIVITY_PATH"
 
       - name: Get dependencies
         run: flutter pub get
