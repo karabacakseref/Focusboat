@@ -1,4 +1,5 @@
-name: Android APK Build
+
+  name: Android APK Build
 
 on:
   push:
@@ -55,15 +56,8 @@ jobs:
             convert assets/logo_icon.png -resize ${size}x${size} -background white -gravity center -extent ${size}x${size} "android/app/src/main/res/$density/ic_launcher.png"
           done
 
-      - name: Get dependencies
-        run: flutter pub get
-
-      - name: Build release APK
-        run: flutter build apk --release
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: focus-boat-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
-  
+      - name: Ağ yönlendirme için özel MainActivity.kt yerleştir (WiFi/mobil veri kontrolü)
+        run: |
+          MAIN_ACTIVITY_PATH="android/app/src/main/kotlin/com/fgi/focusboat/focus_boat/MainActivity.kt"
+          mkdir -p "$(dirname "$MAIN_ACTIVITY_PATH")"
+          echo "cGFja2FnZS
