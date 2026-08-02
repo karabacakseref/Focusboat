@@ -25,6 +25,10 @@ const List<_DefaultMeta> _inputDefaults = [
 ];
 
 const List<_DefaultMeta> _outputDefaults = [
+  _DefaultMeta('Buzzer', Icons.volume_up),
+  _DefaultMeta('Arıza Lambası', Icons.warning_amber_rounded),
+  _DefaultMeta('PLC Run', Icons.memory),
+  _DefaultMeta('Haberleşme', Icons.wifi),
   _DefaultMeta('Sintine Pompası', Icons.water),
   _DefaultMeta('İskele Lambası', Icons.lightbulb),
   _DefaultMeta('Hidrofor Pompa', Icons.plumbing),
