@@ -1,4 +1,5 @@
-name: Android APK Build
+
+  name: Android APK Build
 
 on:
   push:
@@ -29,4 +30,48 @@ jobs:
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           if ! grep -q "android.permission.INTERNET" "$MANIFEST"; then
-            sed -i '/<manifest /a\    <uses-permission android:name="android.permission.INTERNET" />' "$MANIFEST"
+            sed -i 's#<manifest xmlns:android="http://schemas.android.com/apk/res/android">#&\n    <uses-permission android:name="android.permission.INTERNET" />#' "$MANIFEST"
+          fi
+          echo "----- AndroidManifest.xml -----"
+          cat "$MANIFEST"
+
+      - name: Bump Android compileSdk/targetSdk (bazı paketler için gerekli)
+        run: |
+          for f in android/app/build.gradle.kts android/app/build.gradle; do
+            if [ -f "$f" ]; then
+              sed -i -E "s/compileSdk[[:space:]]*=?[[:space:]]*flutter\.compileSdkVersion/compileSdk = 36/" "$f" || true
+              sed -i -E "s/compileSdkVersion[[:space:]]+flutter\.compileSdkVersion/compileSdkVersion 36/" "$f" || true
+              sed -i -E "s/targetSdk[[:space:]]*=?[[:space:]]*flutter\.targetSdkVersion/targetSdk = 36/" "$f" || true
+              sed -i -E "s/targetSdkVersion[[:space:]]+flutter\.targetSdkVersion/targetSdkVersion 36/" "$f" || true
+            fi
+          done
+
+      - name: Uygulama simgesini FocusBoat logosuyla değiştir
+        run: |
+          command -v convert >/dev/null 2>&1 || sudo apt-get update -y && sudo apt-get install -y imagemagick
+          declare -A sizes=( [mipmap-mdpi]=48 [mipmap-hdpi]=72 [mipmap-xhdpi]=96 [mipmap-xxhdpi]=144 [mipmap-xxxhdpi]=192 )
+          for density in "${!sizes[@]}"; do
+            size=${sizes[$density]}
+            mkdir -p "android/app/src/main/res/$density"
+            convert assets/logo_icon.png -resize ${size}x${size} -background white -gravity center -extent ${size}x${size} "android/app/src/main/res/$density/ic_launcher.png"
+          done
+
+      - name: Ağ yönlendirme için özel MainActivity.kt yerleştir (WiFi/mobil veri kontrolü)
+        run: |
+          MAIN_ACTIVITY_PATH="android/app/src/main/kotlin/com/fgi/focusboat/focus_boat/MainActivity.kt"
+          mkdir -p "$(dirname "$MAIN_ACTIVITY_PATH")"
+          echo "cGFja2FnZSBjb20uZmdpLmZvY3VzYm9hdC5mb2N1c19ib2F0CgppbXBvcnQgYW5kcm9pZC5uZXQuQ29ubmVjdGl2aXR5TWFuYWdlcgppbXBvcnQgYW5kcm9pZC5uZXQuTmV0d29yawppbXBvcnQgYW5kcm9pZC5uZXQuTmV0d29ya0NhcGFiaWxpdGllcwppbXBvcnQgYW5kcm9pZC5uZXQuTmV0d29ya1JlcXVlc3QKaW1wb3J0IGlvLmZsdXR0ZXIuZW1iZWRkaW5nLmFuZHJvaWQuRmx1dHRlckFjdGl2aXR5CmltcG9ydCBpby5mbHV0dGVyLmVtYmVkZGluZy5lbmdpbmUuRmx1dHRlckVuZ2luZQppbXBvcnQgaW8uZmx1dHRlci5wbHVnaW4uY29tbW9uLk1ldGhvZENoYW5uZWwKCmNsYXNzIE1haW5BY3Rpdml0eSA6IEZsdXR0ZXJBY3Rpdml0eSgpIHsKICAgIHByaXZhdGUgdmFsIENIQU5ORUwgPSAiZm9jdXNib2F0L25ldHdvcmsiCiAgICBwcml2YXRlIHZhciBuZXR3b3JrQ2FsbGJhY2s6IENvbm5lY3Rpdml0eU1hbmFnZXIuTmV0d29ya0NhbGxiYWNrPyA9IG51bGwKCiAgICBvdmVycmlkZSBmdW4gY29uZmlndXJlRmx1dHRlckVuZ2luZShmbHV0dGVyRW5naW5lOiBGbHV0dGVyRW5naW5lKSB7CiAgICAgICAgc3VwZXIuY29uZmlndXJlRmx1dHRlckVuZ2luZShmbHV0dGVyRW5naW5lKQogICAgICAgIE1ldGhvZENoYW5uZWwoZmx1dHRlckVuZ2luZS5kYXJ0RXhlY3V0b3IuYmluYXJ5TWVzc2VuZ2VyLCBDSEFOTkVMKS5zZXRNZXRob2RDYWxsSGFuZGxlciB7IGNhbGwsIHJlc3VsdCAtPgogICAgICAgICAgICB2YWwgY20gPSBnZXRTeXN0ZW1TZXJ2aWNlKENPTk5FQ1RJVklUWV9TRVJWSUNFKSBhcyBDb25uZWN0aXZpdHlNYW5hZ2VyCiAgICAgICAgICAgIHdoZW4gKGNhbGwubWV0aG9kKSB7CiAgICAgICAgICAgICAgICAiZm9yY2VXaWZpIiAtPiB7CiAgICAgICAgICAgICAgICAgICAgdmFsIHJlcXVlc3QgPSBOZXR3b3JrUmVxdWVzdC5CdWlsZGVyKCkKICAgICAgICAgICAgICAgICAgICAgICAgLmFkZFRyYW5zcG9ydFR5cGUoTmV0d29ya0NhcGFiaWxpdGllcy5UUkFOU1BPUlRfV0lGSSkKICAgICAgICAgICAgICAgICAgICAgICAgLmJ1aWxkKCkKICAgICAgICAgICAgICAgICAgICB2YWwgY2FsbGJhY2sgPSBvYmplY3QgOiBDb25uZWN0aXZpdHlNYW5hZ2VyLk5ldHdvcmtDYWxsYmFjaygpIHsKICAgICAgICAgICAgICAgICAgICAgICAgb3ZlcnJpZGUgZnVuIG9uQXZhaWxhYmxlKG5ldHdvcms6IE5ldHdvcmspIHsKICAgICAgICAgICAgICAgICAgICAgICAgICAgIGNtLmJpbmRQcm9jZXNzVG9OZXR3b3JrKG5ldHdvcmspCiAgICAgICAgICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICAgICAgbmV0d29ya0NhbGxiYWNrPy5sZXQgeyB0cnkgeyBjbS51bnJlZ2lzdGVyTmV0d29ya0NhbGxiYWNrKGl0KSB9IGNhdGNoIChlOiBFeGNlcHRpb24pIHt9IH0KICAgICAgICAgICAgICAgICAgICBuZXR3b3JrQ2FsbGJhY2sgPSBjYWxsYmFjawogICAgICAgICAgICAgICAgICAgIGNtLnJlcXVlc3ROZXR3b3JrKHJlcXVlc3QsIGNhbGxiYWNrKQogICAgICAgICAgICAgICAgICAgIHJlc3VsdC5zdWNjZXNzKHRydWUpCiAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICAicmVsZWFzZVdpZmkiIC0+IHsKICAgICAgICAgICAgICAgICAgICBjbS5iaW5kUHJvY2Vzc1RvTmV0d29yayhudWxsKQogICAgICAgICAgICAgICAgICAgIG5ldHdvcmtDYWxsYmFjaz8ubGV0IHsgdHJ5IHsgY20udW5yZWdpc3Rlck5ldHdvcmtDYWxsYmFjayhpdCkgfSBjYXRjaCAoZTogRXhjZXB0aW9uKSB7fSB9CiAgICAgICAgICAgICAgICAgICAgbmV0d29ya0NhbGxiYWNrID0gbnVsbAogICAgICAgICAgICAgICAgICAgIHJlc3VsdC5zdWNjZXNzKHRydWUpCiAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICBlbHNlIC0+IHJlc3VsdC5ub3RJbXBsZW1lbnRlZCgpCiAgICAgICAgICAgIH0KICAgICAgICB9CiAgICB9Cn0K" | base64 -d > "$MAIN_ACTIVITY_PATH"
+          echo "----- MainActivity.kt -----"
+          cat "$MAIN_ACTIVITY_PATH"
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: focus-boat-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
