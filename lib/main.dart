@@ -7,6 +7,8 @@ import 'package:torch_light/torch_light.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'dart:math' as math;
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'io_point.dart';
 import 'modbus_client.dart';
 import 'storage.dart';
@@ -117,6 +119,11 @@ class _HomePageState extends State<HomePage>
   double? _pressure;
   StreamSubscription<CompassEvent>? _compassSub;
   StreamSubscription<BarometerEvent>? _barometerSub;
+  Timer? _weatherTimer;
+  bool _weatherOk = false;
+  double? _weatherTemp;
+  int? _weatherHumidity;
+  String? _weatherError;
 
   final List<IOPoint> _inputs = List.generate(
       kInputCount, (i) => IOPoint.defaultFor(PointCategory.input, i));
@@ -147,7 +154,43 @@ class _HomePageState extends State<HomePage>
       // Cihazda barometre sensörü olmayabilir, sorun değil
     }
     _alarmTimer = Timer.periodic(const Duration(seconds: 6), (_) => _checkAlarm());
+    _fetchWeather(); // hemen bir kez dene
+    _weatherTimer = Timer.periodic(const Duration(seconds: 5), (_) => _fetchWeather());
     _bootstrap();
+  }
+
+  /// Mobil veri/internet üzerinden hava durumu çeker — aynı zamanda
+  /// telefonun internete (WiFi + PLC bağlantısından bağımsız olarak)
+  /// erişip erişemediğini test etmek için kullanılır.
+  Future<void> _fetchWeather() async {
+    try {
+      final uri = Uri.parse(
+        'https://api.open-meteo.com/v1/forecast'
+        '?latitude=41.01&longitude=28.97'
+        '&current=temperature_2m,relative_humidity_2m',
+      );
+      final response = await http.get(uri).timeout(const Duration(seconds: 4));
+      if (response.statusCode != 200) {
+        throw Exception('HTTP ${response.statusCode}');
+      }
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final current = data['current'] as Map<String, dynamic>;
+      if (!mounted) return;
+      setState(() {
+        _weatherOk = true;
+        _weatherTemp = (current['temperature_2m'] as num).toDouble();
+        _weatherHumidity = (current['relative_humidity_2m'] as num).toInt();
+        _weatherError = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _weatherOk = false;
+        _weatherTemp = null;
+        _weatherHumidity = null;
+        _weatherError = 'Bağlantı yok';
+      });
+    }
   }
 
   Future<void> _bootstrap() async {
@@ -335,6 +378,7 @@ class _HomePageState extends State<HomePage>
     WakelockPlus.disable();
     _compassSub?.cancel();
     _barometerSub?.cancel();
+    _weatherTimer?.cancel();
     _client?.disconnect();
     _tabController.dispose();
     super.dispose();
@@ -869,6 +913,87 @@ class _HomePageState extends State<HomePage>
           child: Text(
             'Not: Ani basınç düşüşü genelde yaklaşan bir fırtına/hava değişimi işaretidir.',
             style: TextStyle(color: Colors.grey, fontSize: 12),
+          ),
+        ),
+        const SizedBox(height: 16),
+        // ---- Hava Durumu / İnternet Bağlantı Testi kartı ----
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: (_weatherOk ? Colors.green : Colors.red).withOpacity(0.3),
+            ),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.wifi_tethering, color: kNavy, size: 20),
+                  const SizedBox(width: 8),
+                  const Text('Hava Durumu (İnternet Testi)',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  const Spacer(),
+                  Icon(Icons.circle, size: 10, color: _weatherOk ? Colors.green : Colors.red),
+                  const SizedBox(width: 6),
+                  Text(
+                    _weatherOk ? 'Bağlı' : (_weatherError ?? 'Bağlantı yok'),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12.5,
+                      color: _weatherOk ? Colors.green.shade700 : Colors.red.shade700,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Bu kart, mobil veri/internet üzerinden 5 saniyede bir test yapar '
+                '— PLC bağlantısından (WiFi) tamamen bağımsızdır.',
+                style: TextStyle(color: Colors.grey, fontSize: 11.5),
+              ),
+              const SizedBox(height: 14),
+              if (_weatherOk && _weatherTemp != null)
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Sıcaklık', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                          Text('${_weatherTemp!.toStringAsFixed(1)}°C',
+                              style: const TextStyle(
+                                  fontSize: 20, fontWeight: FontWeight.w800, color: kNavy)),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Nem', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                          Text('%${_weatherHumidity ?? "-"}',
+                              style: const TextStyle(
+                                  fontSize: 20, fontWeight: FontWeight.w800, color: kNavy)),
+                        ],
+                      ),
+                    ),
+                  ],
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    'Veri yok — internet bağlantısı sağlanamadı.',
+                    style: TextStyle(color: Colors.red.shade700, fontWeight: FontWeight.w600),
+                  ),
+                ),
+            ],
           ),
         ),
       ],
