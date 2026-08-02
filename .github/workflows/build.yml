@@ -1,5 +1,4 @@
-
-  name: Android APK Build
+name: Android APK Build
 
 on:
   push:
@@ -31,33 +30,3 @@ jobs:
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           if ! grep -q "android.permission.INTERNET" "$MANIFEST"; then
             sed -i '/<manifest /a\    <uses-permission android:name="android.permission.INTERNET" />' "$MANIFEST"
-          fi
-          echo "----- AndroidManifest.xml -----"
-          cat "$MANIFEST"
-
-      - name: Bump Android compileSdk/targetSdk (bazı paketler için gerekli)
-        run: |
-          for f in android/app/build.gradle.kts android/app/build.gradle; do
-            if [ -f "$f" ]; then
-              sed -i -E "s/compileSdk[[:space:]]*=?[[:space:]]*flutter\.compileSdkVersion/compileSdk = 36/" "$f" || true
-              sed -i -E "s/compileSdkVersion[[:space:]]+flutter\.compileSdkVersion/compileSdkVersion 36/" "$f" || true
-              sed -i -E "s/targetSdk[[:space:]]*=?[[:space:]]*flutter\.targetSdkVersion/targetSdk = 36/" "$f" || true
-              sed -i -E "s/targetSdkVersion[[:space:]]+flutter\.targetSdkVersion/targetSdkVersion 36/" "$f" || true
-            fi
-          done
-
-      - name: Uygulama simgesini FocusBoat logosuyla değiştir
-        run: |
-          command -v convert >/dev/null 2>&1 || sudo apt-get update -y && sudo apt-get install -y imagemagick
-          declare -A sizes=( [mipmap-mdpi]=48 [mipmap-hdpi]=72 [mipmap-xhdpi]=96 [mipmap-xxhdpi]=144 [mipmap-xxxhdpi]=192 )
-          for density in "${!sizes[@]}"; do
-            size=${sizes[$density]}
-            mkdir -p "android/app/src/main/res/$density"
-            convert assets/logo_icon.png -resize ${size}x${size} -background white -gravity center -extent ${size}x${size} "android/app/src/main/res/$density/ic_launcher.png"
-          done
-
-      - name: Ağ yönlendirme için özel MainActivity.kt yerleştir (WiFi/mobil veri kontrolü)
-        run: |
-          MAIN_ACTIVITY_PATH="android/app/src/main/kotlin/com/fgi/focusboat/focus_boat/MainActivity.kt"
-          mkdir -p "$(dirname "$MAIN_ACTIVITY_PATH")"
-          echo "cGFja2FnZS
